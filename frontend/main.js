@@ -94,6 +94,10 @@ let coachAiAuto = false;
 let coachAiToken = 0;
 // Whether chat questions inject the cross-game coaching profile (a Settings option, default on).
 let personalizeHistory = true;
+// Network-access checkbox state when the Settings panel was opened, so Save can tell whether it
+// changed and warn that a restart is needed for a bind-address change to actually take effect.
+let initialLanAccess = false;
+let settingsWebPort = 8765; // last-known port, for the LAN-access hint text
 
 // --- puzzle mode ---------------------------------------------------------
 // A focused tactical trainer that reuses the same chessground board + chess.js instance. When
@@ -2289,6 +2293,24 @@ function updateChesscomSyncUI() {
   $("chesscom-sync-max-field").hidden = !$("set-chesscom-sync").checked;
 }
 
+// Warn about the security tradeoff + restart requirement, and (once checked) show where the board
+// would be reachable so the user knows what to type on their phone.
+function updateLanHint(webPort) {
+  const base = "Off (default): the board only answers requests from this computer (binds to " +
+    "127.0.0.1). On: binds to 0.0.0.0 so phones/tablets/other computers on your network can open " +
+    "the board too — anyone on your network could then reach it, and it also turns off the " +
+    "local-only request guard, so only enable this on a network you trust. <b>If this computer has " +
+    "a public IP (e.g. port forwarding, a cloud VM, or a direct internet connection) this exposes " +
+    "the board to the entire internet</b>, not just your network. Requires restarting the app to " +
+    "take effect.";
+  const port = webPort || settingsWebPort;
+  // innerHTML (for the <b> above), so the placeholder's angle brackets must be entities or the
+  // browser silently swallows them as a bogus tag instead of showing them as literal text.
+  $("set-lan-hint").innerHTML = $("set-lan-access").checked
+    ? `${base} Once restarted, other devices connect at http://&lt;this computer's LAN IP&gt;:${port}.`
+    : base;
+}
+
 // Show/hide the slider to match the checkbox and refresh the readout.
 function updateSkillUI() {
   const auto = $("set-skill-auto").checked;
@@ -2327,6 +2349,11 @@ async function openSettings() {
   $("set-skill-auto").checked = !elo;
   $("set-elo").value = elo || SKILL_DEFAULT_ELO;
   updateSkillUI();
+  const lan = (s.web_host || "").trim().toLowerCase();
+  $("set-lan-access").checked = !["", "127.0.0.1", "localhost", "::1"].includes(lan);
+  initialLanAccess = $("set-lan-access").checked;
+  settingsWebPort = data.web_port || settingsWebPort;
+  updateLanHint(settingsWebPort);
   $("set-stockfish").value = s.stockfish_path || "";
   $("set-local-llm-url").value = s.local_llm_base_url || "";
   $("set-local-llm-model").value = s.local_llm_model || "";
@@ -2408,6 +2435,7 @@ async function saveSettings(e) {
     chesscom_sync_max: $("set-chesscom-sync-max").value.trim(),
     aliases: $("set-aliases").value.trim(),
     lichess_token: $("set-token").value.trim(),
+    web_host: $("set-lan-access").checked ? "0.0.0.0" : "127.0.0.1",
     stockfish_path: $("set-stockfish").value.trim(),
     local_llm_base_url: $("set-local-llm-url").value.trim(),
     local_llm_model: $("set-local-llm-model").value.trim(),
@@ -2441,7 +2469,15 @@ async function saveSettings(e) {
   appUsername = (res.settings && res.settings.username) || "";
   chesscomUsername = (res.settings && res.settings.chesscom_username) || "";
   if (appUsername) $("lichess-user").placeholder = appUsername;
-  $("settings").hidden = true;
+  const lanChanged = $("set-lan-access").checked !== initialLanAccess;
+  if (lanChanged) {
+    // The socket is already bound; the new host only takes effect after a full app restart, so
+    // keep the panel open a beat with an explicit note instead of silently closing as usual.
+    $("settings-status").textContent = "Saved — restart the app for the network-access change to take effect.";
+    setTimeout(() => { $("settings").hidden = true; }, 2200);
+  } else {
+    $("settings").hidden = true;
+  }
   // Apply the auto-summary preference without clobbering a summary that's already shown/pending:
   // only act when nothing's there yet (turn-on -> generate now; turn-off -> offer the button).
   coachAiAuto = !!(res.settings && res.settings.coach_ai_auto);
@@ -4496,6 +4532,7 @@ function init() {
   $("set-lifetime").addEventListener("input", syncProfileModeFromFields);
   $("set-skill-auto").addEventListener("change", updateSkillUI);
   $("set-chesscom-sync").addEventListener("change", updateChesscomSyncUI);
+  $("set-lan-access").addEventListener("change", () => updateLanHint());
   $("set-elo").addEventListener("input", updateSkillUI);
   $("set-ollama-detect").addEventListener("click", detectOllama);
   $("set-ollama-model-select").addEventListener("change", (e) => {

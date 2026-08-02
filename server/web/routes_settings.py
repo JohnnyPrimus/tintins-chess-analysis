@@ -43,6 +43,7 @@ class SettingsPatch(BaseModel):
     puzzle_mistake_interleave: bool | None = None
     local_llm_base_url: str | None = None
     local_llm_model: str | None = None
+    web_host: str | None = None
 
 
 def _stockfish_ok(path: str) -> bool:
@@ -57,6 +58,7 @@ def get_settings() -> dict:
         "settings": eff,
         "stockfish_ok": _stockfish_ok(eff["stockfish_path"]),
         "data_dir": config.DATA_DIR,
+        "web_port": config.WEB_PORT,
     }
 
 

@@ -15,7 +15,7 @@ def restore_config():
     saved = {
         k: getattr(config, k)
         for k in ("USERNAME", "USERNAME_ALIASES", "LICHESS_TOKEN", "PROFILE_RECENT_WINDOW",
-                  "PROFILE_LIFETIME", "COACH_AI_AUTO", "PERSONALIZE_HISTORY")
+                  "PROFILE_LIFETIME", "COACH_AI_AUTO", "PERSONALIZE_HISTORY", "WEB_HOST")
     }
     yield
     for k, v in saved.items():
@@ -82,6 +82,24 @@ def test_update_strips_quotes_from_stockfish_path(tmp_path, restore_config):
     saved = json.loads((tmp_path / "settings.json").read_text())["stockfish_path"]
     assert saved == "/some/where/stockfish"
     assert config.STOCKFISH_PATH == "/some/where/stockfish"
+
+
+def test_web_host_toggle_persists(tmp_path, restore_config):
+    d = str(tmp_path)
+    settings.update({"web_host": "0.0.0.0"}, data_dir=d)  # opt-in to LAN access (default is loopback)
+    assert config.WEB_HOST == "0.0.0.0"
+    assert json.loads((tmp_path / "settings.json").read_text())["web_host"] == "0.0.0.0"
+    # A fresh process picks the saved value back up over the env/default.
+    config.WEB_HOST = "127.0.0.1"
+    settings.apply_saved(data_dir=d)
+    assert config.WEB_HOST == "0.0.0.0"
+    assert settings.effective()["web_host"] == "0.0.0.0"
+
+
+def test_web_host_blank_falls_back_to_loopback(restore_config):
+    config.WEB_HOST = "0.0.0.0"
+    settings.apply({"web_host": ""})
+    assert config.WEB_HOST == "127.0.0.1"
 
 
 def test_personalize_history_toggle_persists(tmp_path, restore_config):
