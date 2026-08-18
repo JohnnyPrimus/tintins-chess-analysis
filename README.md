@@ -3,6 +3,11 @@
 [![CI](https://github.com/Chess-analysis-mcp/tintins-chess-analysis/actions/workflows/ci.yml/badge.svg)](https://github.com/Chess-analysis-mcp/tintins-chess-analysis/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+# What's different from the original
+The only difference between this fork and the original code, is that this fork enables a setting which allows 
+users to listen on all network interfaces. If you have a machine/server you want to run this on, but need
+to access the web interface of that device over the network, this fork enables that functionality.
+
 A chess coach you can actually **talk to**, and one that **doesn't make things up**. Ask why a move
 was a mistake or what you should have played, and get a straight answer **in words**, grounded in
 real **Stockfish** lines instead of guessed. Under the hood it reviews your game with the engine and
