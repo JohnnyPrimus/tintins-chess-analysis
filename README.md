@@ -6,7 +6,9 @@
 # What's different from the original
 The only difference between this fork and the original code, is that this fork enables a setting which allows 
 users to listen on all network interfaces. If you have a machine/server you want to run this on, but need
-to access the web interface of that device over the network, this fork enables that functionality.
+to access the web interface of that device over the network, this fork enables that functionality directly
+via setting, rather than environment variables. If/when this PR makes it upstream this fork will be archived
+in favor of the original.
 
 A chess coach you can actually **talk to**, and one that **doesn't make things up**. Ask why a move
 was a mistake or what you should have played, and get a straight answer **in words**, grounded in
